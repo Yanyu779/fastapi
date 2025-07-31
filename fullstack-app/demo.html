@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask + React 全栈项目演示</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .demo-card { margin: 20px 0; }
+        .api-response { background: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 10px 0; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-4">
+                    <h1 class="text-primary">🚀 Flask + React 全栈项目演示</h1>
+                    <p class="lead">实时API功能测试</p>
+                </div>
+
+                <div class="demo-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>📡 API状态</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="api-status" class="alert alert-info">检查中...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>👥 用户管理</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary" onclick="getUsers()">📋 获取用户列表</button>
+                            <button class="btn btn-success ms-2" onclick="addUser()">➕ 添加测试用户</button>
+                            <button class="btn btn-warning ms-2" onclick="clearUsers()">🗑️ 清空用户</button>
+                            
+                            <div id="users-result" class="api-response mt-3" style="display:none;">
+                                <h6>响应结果:</h6>
+                                <pre id="users-data"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>🔧 项目信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>🌐 访问地址:</h6>
+                                    <ul>
+                                        <li>本地API: <code>http://localhost:8000/api</code></li>
+                                        <li>外网API: <code>http://13.58.39.217:8000/api</code></li>
+                                        <li>GitHub仓库: <a href="https://github.com/Yanyu779/flask-react-fullstack" target="_blank">查看代码</a></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>⚡ 技术栈:</h6>
+                                    <ul>
+                                        <li>后端: Flask + SQLAlchemy</li>
+                                        <li>前端: React + TypeScript</li>
+                                        <li>数据库: SQLite</li>
+                                        <li>UI框架: Bootstrap</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        // 检查API状态
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                if (response.ok) {
+                    document.getElementById('api-status').innerHTML = 
+                        '<span class="success">✅ API服务正常运行</span>';
+                    document.getElementById('api-status').className = 'alert alert-success';
+                } else {
+                    throw new Error('API响应异常');
+                }
+            } catch (error) {
+                document.getElementById('api-status').innerHTML = 
+                    '<span class="error">❌ API服务连接失败</span>';
+                document.getElementById('api-status').className = 'alert alert-danger';
+            }
+        }
+
+        // 获取用户列表
+        async function getUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                const data = await response.json();
+                
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = JSON.stringify(data, null, 2);
+                
+                if (data.length === 0) {
+                    document.getElementById('users-data').textContent = '暂无用户数据 []';
+                }
+            } catch (error) {
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = `错误: ${error.message}`;
+            }
+        }
+
+        // 添加测试用户
+        async function addUser() {
+            const testUser = {
+                name: `测试用户${Date.now()}`,
+                email: `test${Date.now()}@example.com`
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testUser)
+                });
+                
+                const data = await response.json();
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = 
+                    `✅ 用户创建成功:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = `❌ 创建失败: ${error.message}`;
+            }
+        }
+
+        // 清空用户 (演示用)
+        async function clearUsers() {
+            try {
+                // 先获取所有用户
+                const response = await fetch(`${API_BASE}/users`);
+                const users = await response.json();
+                
+                // 删除所有用户
+                for (const user of users) {
+                    await fetch(`${API_BASE}/users/${user.id}`, {method: 'DELETE'});
+                }
+                
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = `✅ 已清空 ${users.length} 个用户`;
+            } catch (error) {
+                document.getElementById('users-result').style.display = 'block';
+                document.getElementById('users-data').textContent = `❌ 清空失败: ${error.message}`;
+            }
+        }
+
+        // 页面加载时检查API状态
+        window.onload = checkAPIStatus;
+    </script>
+</body>
+</html>
