@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .header { background-color: #007bff; color: white; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .table { width: 100%; border-collapse: collapse; background: white; border-radius: 5px; overflow: hidden; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background-color: #f8f9fa; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 400px; border-radius: 10px; max-width: 90%; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .alert-info { background-color: #d1ecf1; color: #0c5460; }
+        .alert-success { background-color: #d4edda; color: #155724; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; }
+        @media (max-width: 768px) {
+            .table { font-size: 14px; }
+            .modal-content { width: 95%; margin: 5% auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 用户管理系统</h1>
+        </div>
+        
+        <button class="btn btn-primary" onclick="showAddForm()">➕ 添加用户</button>
+        
+        <div id="message"></div>
+        
+        <h3>用户列表</h3>
+        <div id="userList">
+            <div class="alert alert-info">加载中...</div>
+        </div>
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">添加用户</h3>
+            <form id="userForm">
+                <div class="form-group">
+                    <label>姓名:</label>
+                    <input type="text" id="userName" required>
+                </div>
+                <div class="form-group">
+                    <label>邮箱:</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="btn" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">💾 保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 请将此处的IP改为你的服务器IP
+        const API_URL = "http://8.140.211.70:5000/api";
+        let editingUserId = null;
+
+        document.addEventListener("DOMContentLoaded", fetchUsers);
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch(API_URL + "/users");
+                const users = await response.json();
+                displayUsers(users);
+            } catch (error) {
+                showMessage("获取用户列表失败: " + error.message, "danger");
+                console.error(error);
+            }
+        }
+
+        function displayUsers(users) {
+            const listDiv = document.getElementById("userList");
+            
+            if (users.length === 0) {
+                listDiv.innerHTML = '<div class="alert alert-info">暂无用户数据</div>';
+                return;
+            }
+
+            let html = '<table class="table"><thead><tr><th>ID</th><th>姓名</th><th>邮箱</th><th>创建时间</th><th>操作</th></tr></thead><tbody>';
+            
+            users.forEach(user => {
+                const createTime = new Date(user.created_at).toLocaleString('zh-CN');
+                html += `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${escapeHtml(user.name)}</td>
+                        <td>${escapeHtml(user.email)}</td>
+                        <td>${createTime}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="editUser(${user.id}, '${escapeHtml(user.name)}', '${escapeHtml(user.email)}')">✏️ 编辑</button>
+                            <button class="btn btn-danger" onclick="deleteUser(${user.id})">🗑️ 删除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            listDiv.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showAddForm() {
+            editingUserId = null;
+            document.getElementById("modalTitle").textContent = "➕ 添加用户";
+            document.getElementById("userName").value = "";
+            document.getElementById("userEmail").value = "";
+            document.getElementById("userModal").style.display = "block";
+        }
+
+        function editUser(id, name, email) {
+            editingUserId = id;
+            document.getElementById("modalTitle").textContent = "✏️ 编辑用户";
+            document.getElementById("userName").value = name;
+            document.getElementById("userEmail").value = email;
+            document.getElementById("userModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("userModal").style.display = "none";
+        }
+
+        async function deleteUser(id) {
+            if (!confirm("确定要删除这个用户吗？")) return;
+            
+            try {
+                const response = await fetch(API_URL + "/users/" + id, {
+                    method: "DELETE"
+                });
+                
+                if (response.ok) {
+                    showMessage("✅ 用户删除成功", "success");
+                    fetchUsers();
+                } else {
+                    const error = await response.json();
+                    showMessage("❌ 删除失败: " + (error.error || "未知错误"), "danger");
+                }
+            } catch (error) {
+                showMessage("❌ 删除失败: " + error.message, "danger");
+                console.error(error);
+            }
+        }
+
+        document.getElementById("userForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById("userName").value.trim();
+            const email = document.getElementById("userEmail").value.trim();
+            
+            if (!name || !email) {
+                showMessage("❌ 请填写完整信息", "danger");
+                return;
+            }
+            
+            try {
+                const url = editingUserId ? API_URL + "/users/" + editingUserId : API_URL + "/users";
+                const method = editingUserId ? "PUT" : "POST";
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ name, email })
+                });
+                
+                if (response.ok) {
+                    showMessage("✅ " + (editingUserId ? "用户更新成功" : "用户添加成功"), "success");
+                    closeModal();
+                    fetchUsers();
+                } else {
+                    const error = await response.json();
+                    showMessage("❌ " + (error.error || "操作失败"), "danger");
+                }
+            } catch (error) {
+                showMessage("❌ 操作失败: " + error.message, "danger");
+                console.error(error);
+            }
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById("message");
+            messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = "";
+            }, 5000);
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById("userModal");
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
