@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:5.7
+    container_name: apollo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: apollo
+      MYSQL_DATABASE: apollo
+      MYSQL_USER: apollo
+      MYSQL_PASSWORD: apollo
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Apollo Admin Service
+  apollo-admin-service:
+    image: apolloconfig/apollo-adminservice:latest
+    container_name: apollo-admin-service
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/apollo?useUnicode=true&characterEncoding=utf8&useSSL=false
+      SPRING_DATASOURCE_USERNAME: apollo
+      SPRING_DATASOURCE_PASSWORD: apollo
+    depends_on:
+      - mysql
+    volumes:
+      - ./apollo-config:/opt/apollo-config
+
+  # Apollo Config Service
+  apollo-config-service:
+    image: apolloconfig/apollo-configservice:latest
+    container_name: apollo-config-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/apollo?useUnicode=true&characterEncoding=utf8&useSSL=false
+      SPRING_DATASOURCE_USERNAME: apollo
+      SPRING_DATASOURCE_PASSWORD: apollo
+    depends_on:
+      - mysql
+    volumes:
+      - ./apollo-config:/opt/apollo-config
+
+  # Apollo Portal
+  apollo-portal:
+    image: apolloconfig/apollo-portal:latest
+    container_name: apollo-portal
+    ports:
+      - "8070:8070"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/apollo?useUnicode=true&characterEncoding=utf8&useSSL=false
+      SPRING_DATASOURCE_USERNAME: apollo
+      SPRING_DATASOURCE_PASSWORD: apollo
+    depends_on:
+      - mysql
+    volumes:
+      - ./apollo-config:/opt/apollo-config
+
+volumes:
+  mysql_data:
