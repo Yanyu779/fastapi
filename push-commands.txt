@@ -1,0 +1,26 @@
+# GitHub推送命令
+
+## 如果你有Personal Access Token:
+cd /workspace/fullstack-app
+git remote set-url origin https://YOUR_TOKEN@github.com/Yanyu779/flask-react-fullstack.git
+git push -u origin main
+
+## 或者创建新的Personal Access Token:
+1. 访问: https://github.com/settings/tokens
+2. 点击 "Generate new token (classic)"
+3. 选择权限: repo (Full control of private repositories)
+4. 复制生成的token
+5. 替换上面命令中的 YOUR_TOKEN
+
+## 当前本地仓库状态:
+- 分支: main
+- 提交数: 1
+- 提交信息: "🚀 Initial commit: Flask + React 全栈应用"
+- 文件数: 36个文件
+
+## 推送内容预览:
+✅ Flask后端 (API + 数据库)
+✅ React前端 (TypeScript + Bootstrap)
+✅ Docker配置
+✅ 开发脚本
+✅ 完整文档
